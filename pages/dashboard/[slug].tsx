@@ -1,7 +1,12 @@
-// pages/dashboard/[slug].tsx
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+
+interface ProjectVersion {
+  id: string;
+  created_at: string;
+  html: string;
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -13,15 +18,22 @@ export default function Dashboard() {
   const [html, setHtml] = useState('');
   const [iframeSrc, setIframeSrc] = useState('');
   const [tab, setTab] = useState<'editor' | 'preview' | 'code'>('editor');
-  const [versions, setVersions] = useState<any[]>([]);
+  const [versions, setVersions] = useState<ProjectVersion[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!slug) return;
-    fetchProject();
-  }, [slug]);
+  const fetchVersions = async (id: string) => {
+    const { data } = await supabase
+      .from('project_versions')
+      .select('*')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false });
 
-  const fetchProject = async () => {
+    if (data) setVersions(data);
+  };
+
+  const fetchProject = useCallback(async () => {
+    if (!slug) return;
+
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -35,17 +47,11 @@ export default function Dashboard() {
     setHtml(data.html);
     setIframe(data.html);
     fetchVersions(data.id);
-  };
+  }, [slug]);
 
-  const fetchVersions = async (id: string) => {
-    const { data } = await supabase
-      .from('project_versions')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false });
-
-    if (data) setVersions(data);
-  };
+  useEffect(() => {
+    fetchProject();
+  }, [fetchProject]);
 
   const handleGenerate = async () => {
     if (!projectId) return;
