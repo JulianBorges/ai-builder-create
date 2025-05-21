@@ -146,7 +146,7 @@ export default function Dashboard() {
 
       <h2 className="text-xl font-semibold mb-2">Versões Anteriores</h2>
       <div className="grid md:grid-cols-2 gap-4">
-        {versions.map((v) => (
+        {versions.map((v: ProjectVersion) => (
           <div key={v.id} className="bg-white border rounded p-4 shadow">
             <div className="text-sm text-gray-500 mb-2">
               {new Date(v.created_at).toLocaleString()}
