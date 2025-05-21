@@ -1,12 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase';
 import { randomUUID } from 'crypto';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-  project: process.env.OPENAI_PROJECT_ID,
-});
+import { siteGenerator } from '@/lib/agents/graph';
 
 function slugify(text: string): string {
   const base = text
@@ -23,29 +18,26 @@ function slugify(text: string): string {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { prompt, model, projectId } = JSON.parse(req.body);
+    const { prompt, model, projectId, useLangGraph } = JSON.parse(req.body);
 
-    const completion = await openai.chat.completions.create({
-      model: model || 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `Você é um web designer profissional que gera sites HTML modernos, com estilo limpo, visual elegante e bom espaçamento.
-Use fontes legíveis (ex: sans-serif), paleta de cores harmônica (ex: azul, cinza, branco), sombras suaves, cantos arredondados e layout responsivo.
-Utilize CSS inline e não adicione comentários. Comece com <!DOCTYPE html>.`,
-        },
-        {
-          role: 'user',
-          content: `Crie um site com base nesta descrição: ${prompt}`,
-        },
-      ],
-    });
-
-    const html = completion.choices[0].message.content;
+    let html = '';
+    let estrutura = '';
+    let conteudo = '';
+    let design = '';
     let id = projectId;
     let finalSlug = '';
 
-    // ✅ Salvar também na tabela "history"
+    if (useLangGraph) {
+      const result = await siteGenerator.invoke({ prompt });
+      html = result.codigo_html;
+      estrutura = result.estrutura;
+      conteudo = result.conteudo;
+      design = result.design;
+    } else {
+      throw new Error('Este endpoint atualmente suporta apenas LangGraph.'); // opcional
+    }
+
+    // ✅ Salvar histórico
     await supabase.from('history').insert([{ prompt, html, model }]);
 
     // ✅ Novo projeto
@@ -66,8 +58,6 @@ Utilize CSS inline e não adicione comentários. Comece com <!DOCTYPE html>.`,
         .insert([{ prompt, html, model, slug }])
         .select()
         .single();
-
-      console.log('📌 Resultado do insert:', { data, error });
 
       if (error || !data) throw new Error('Erro ao criar projeto');
       id = data.id;
@@ -93,7 +83,14 @@ Utilize CSS inline e não adicione comentários. Comece com <!DOCTYPE html>.`,
       .from('project_versions')
       .insert([{ html, model, prompt, project_id: id }]);
 
-    res.status(200).json({ html, projectId: id, slug: finalSlug });
+    res.status(200).json({
+      html,
+      estrutura,
+      conteudo,
+      design,
+      projectId: id,
+      slug: finalSlug,
+    });
   } catch (error) {
     console.error('❌ Erro no handler:', error);
     res.status(500).json({ error: 'Erro ao gerar o site' });

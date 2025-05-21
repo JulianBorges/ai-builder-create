@@ -9,9 +9,10 @@ export default function Home() {
 
   const handleGenerate = async () => {
     setLoading(true);
+
     const res = await fetch('/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, model }),
+      body: JSON.stringify({ prompt, model, useLangGraph: true }),
     });
 
     const data = await res.json();
@@ -50,10 +51,10 @@ export default function Home() {
 
         <button
           onClick={handleGenerate}
-          className="w-full bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+          className="w-full bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700"
           disabled={loading}
         >
-          {loading ? 'Gerando...' : 'Começar projeto'}
+          {loading ? 'Gerando...' : 'Gerar com LangGraph 🔗'}
         </button>
       </div>
     </div>

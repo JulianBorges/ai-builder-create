@@ -89,7 +89,9 @@ export default function Dashboard() {
           <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini</option>
           <option value="gpt-4o">gpt-4o</option>
           <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          <option value="gpt-4o+llama">gpt-4o + llama (LangGraph)</option>
         </select>
+
       </div>
 
       <div className="mb-4">
